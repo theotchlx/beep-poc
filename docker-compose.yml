@@ -1,0 +1,68 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.1
+    container_name: keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=dev-mem
+    command: start-dev --http-port=8080
+    ports:
+      - '8080:8080'
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ports:
+      - '9200:9200'
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  init-elasticsearch:
+    image: appropriate/curl
+    container_name: init-elasticsearch
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./init.sh:/init.sh
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  backend:
+    build: ./backend
+    container_name: poc-backend
+    depends_on:
+      - elasticsearch
+      - keycloak
+    environment:
+      - ES_URL=http://elasticsearch:9200
+      - KC_ISSUER=http://keycloak:8080/realms/msg-poc
+      - KC_CLIENT_ID=msg-poc-backend
+    ports:
+      - '4000:4000'
+
+  frontend:
+    build: ./frontend
+    container_name: poc-frontend
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - VITE_AUTH_URL=http://localhost:8080/realms/msg-poc/protocol/openid-connect
+      - VITE_CLIENT_ID=msg-poc-front
+    ports:
+      - '5173:5173'
+
+volumes:
+  es_data:
+
