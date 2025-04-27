@@ -43,18 +43,25 @@ func InitMessageAPI(service service.MessageService) *MessageAPI {
 }
 
 func (api *MessageAPI) getAllMessages(c echo.Context) error {
-	messages, err := api.service.GetAll()
+	// First step is to validate and unmarshal the received request into a DTO.
+	getMessages := new(dto.GetMessagesRequest)
+	if err := c.Bind(getMessages); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(getMessages); err != nil {
+		return err
+	}
+
+	// Then, we call the service to return its response DTO.
+	messages, err := api.service.GetPaginated(getMessages)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
-	}
-	if len(messages) == 0 {
-		return c.String(http.StatusNotFound, "Message not found")
 	}
 	return c.JSON(http.StatusOK, messages)
 }
 
 func (api *MessageAPI) getMessage(c echo.Context) error {
-	// First step is to validate the received request into a DTO.
+	// First step is to validate and unmarshal the received request into a DTO.
 	getMessage := new(dto.GetMessageRequest)
 	if err := c.Bind(getMessage); err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
@@ -90,4 +97,36 @@ func (api *MessageAPI) createMessage(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusCreated, message)
+}
+
+func (api *MessageAPI) searchMessages(c echo.Context) error {
+	// First step is to validate and unmarshal the received request into a DTO.
+	searchMessage := new(dto.SearchMessagesRequest)
+	if err := c.Bind(searchMessage); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(searchMessage); err != nil {
+		return err
+	}
+
+	// Validate the limit and offset values.
+	if searchMessage.Offset < 0 {
+		return c.String(http.StatusBadRequest, "offset cannot be negative")
+	}
+	if searchMessage.Limit < 0 {
+		return c.String(http.StatusBadRequest, "limit cannot be negative")
+	}
+
+	// Limit the maximum number of messages to 1000.
+	// This is to prevent overloading the server with too many messages at once.
+	if searchMessage.Limit > 1000 {
+		return c.String(http.StatusBadRequest, "limit cannot be greater than 1000")
+	}
+
+	// Then, we call the service to return its response DTO.
+	messages, err := api.service.Search(searchMessage)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, messages)
 }

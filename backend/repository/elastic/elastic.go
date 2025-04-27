@@ -13,11 +13,11 @@ import (
 )
 
 type IMessageRepository interface {
-	Save(message *dto.Message) error                                    // Save a message to the repository (create or update).
-	Get(id string) (*dto.Message, error)                                // Get a message by ID.
-	GetAll(id string, limit int, offset int) ([]*dto.Message, error)
-	Search(query string, limit int, offset int) ([]*dto.Message, error) // Search for messages based on a query string.
-	SearchTotalQuantity(query string) (int, error)                      // Get the total number of messages that match a query string.
+	Save(message *dto.Message) error // Save a message to the repository (create or update).
+	Get(id string) (*dto.Message, error)  // Get a message by ID.
+	GetPaginated(limit int, offset int) ([]dto.Message, error)
+	Search(query string, limit int, offset int) ([]dto.Message, error) // Search for messages based on a query string.
+	SearchTotalQuantity(query string) (int, error) // Get the total number of messages that match a query string.
 }
 
 const indexName = "messages"
@@ -29,6 +29,7 @@ type MessageRepository struct {
 func NewMessageRepository(client *elasticsearch.Client) *MessageRepository {
 	return &MessageRepository{client: client}
 }
+//TODO: init elastic client / create index if not exist, here?
 
 func (r *MessageRepository) Save(message *dto.Message) error {
 	data, err := json.Marshal(message)
@@ -85,7 +86,7 @@ func (r *MessageRepository) Get(id string) (*dto.Message, error) {
 	return &result.Source, nil
 }
 
-func (r *MessageRepository) GetAll(limit int, offset int) ([]dto.Message, error) {
+func (r *MessageRepository) GetPaginated(limit int, offset int) ([]dto.Message, error) {
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"match_all": map[string]interface{}{},
@@ -134,12 +135,14 @@ func (r *MessageRepository) GetAll(limit int, offset int) ([]dto.Message, error)
 	return messages, nil
 }
 
-func (r *MessageRepository) Search(query string, limit int, offset int) ([]*dto.Message, error) {
+func (r *MessageRepository) Search(query string, limit int, offset int) ([]dto.Message, error) {
 	searchQuery := map[string]interface{}{
 		"query": map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"query":  query,
-				"fields": []string{"author^2", "content"},
+				"query":     query,
+				"fields":    []string{"content"}, // Here we search on one field (content) but could add more.
+				"operator":  "and",
+				"type":      "phrase_prefix", // To match on parts of words (instead of whole words).
 			},
 		},
 		"from": offset,
@@ -178,9 +181,9 @@ func (r *MessageRepository) Search(query string, limit int, offset int) ([]*dto.
 		return nil, fmt.Errorf("error parsing the response body: %w", err)
 	}
 
-	messages := make([]*dto.Message, len(result.Hits.Hits))
+	messages := make([]dto.Message, len(result.Hits.Hits))
 	for i, hit := range result.Hits.Hits {
-		messages[i] = &hit.Source
+		messages[i] = hit.Source
 	}
 
 	return messages, nil
@@ -190,8 +193,10 @@ func (r *MessageRepository) SearchTotalQuantity(query string) (int, error) {
 	searchQuery := map[string]interface{}{
 		"query": map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"query":  query,
-				"fields": []string{"author^2", "content"},
+				"query":     query,
+				"fields":    []string{"content"}, // Here we search on one field (content) but could add more.
+				"operator":  "and",
+				"type":      "phrase_prefix", // To match on parts of words (instead of whole words).
 			},
 		},
 		"size": 0, // We only need the count

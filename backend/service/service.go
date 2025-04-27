@@ -16,21 +16,22 @@ import (
 type MessageService interface {
 	Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error)
 	Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error)
-	GetAll() ([]*dto.GetMessageResponse, error)
+	GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error)
+	Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error)
 }
 
 type ApiMessageService struct {
-	messageRepository elastic.MessageRepository
+	messageRepository *elastic.MessageRepository
 }
 
-func InitMessageService(messageRepository elastic.MessageRepository) *ApiMessageService {
+func InitMessageService(messageRepository *elastic.MessageRepository) *ApiMessageService {
 	return &ApiMessageService{
 		messageRepository: messageRepository,
 	}
 }
 
-func (api *ApiMessageService) GetAll() ([]*dto.GetMessageResponse, error) {
-	messages, err := api.messageRepository.GetAll()
+func (api *ApiMessageService) GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error) {
+	messages, err := api.messageRepository.GetPaginated(request.Limit, request.Offset) // Get paginated messages
 	if err != nil {
 		return nil, err
 	}
@@ -89,4 +90,27 @@ func (api *ApiMessageService) Save(request *dto.CreateMessageRequest) (*dto.Crea
 	return &dto.CreateMessageResponse{
 		MessageID: id,
 	}, nil
+}
+
+func (api *ApiMessageService) Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error) {
+	/*  1. Search for messages in the message repository.
+	 *  3. Return the messages and total number of messages to the caller.
+	 */
+	
+	messages, err := api.messageRepository.Search(request.Query, request.Limit, request.Offset) // Get paginated messages
+	if err != nil {
+		return nil, err
+	}
+
+	var response []*dto.GetMessageResponse
+	for _, message := range messages {
+		response = append(response, &dto.GetMessageResponse{
+			ID:        message.ID,
+			Author:    message.Author,
+			CreatedAt: message.CreatedAt,
+			Content:   message.Content,
+		})
+	}
+
+	return response, nil
 }

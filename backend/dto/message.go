@@ -30,3 +30,14 @@ type GetMessageResponse struct {
     CreatedAt time.Time `json:"createdAt"`
     Content   string    `json:"content"`
 }
+
+type GetMessagesRequest struct {
+    Limit int    `json:"limit"`
+    Offset int   `json:"offset"`
+}
+
+type SearchMessagesRequest struct {
+    Query string `json:"query"`
+    Limit int    `json:"limit"`
+    Offset int   `json:"offset"`
+}
