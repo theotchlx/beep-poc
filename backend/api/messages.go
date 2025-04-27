@@ -31,10 +31,10 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 
 type MessageAPI struct {
 	server  *echo.Echo
-	service service.MessageService
+	service service.IMessageService
 }
 
-func InitMessageAPI(service service.MessageService) *MessageAPI {
+func InitMessageAPI(service service.IMessageService) *MessageAPI {
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
 

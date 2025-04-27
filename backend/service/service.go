@@ -13,25 +13,25 @@ import (
 
 // Message service interface, struct, constructor and methods.
 
-type MessageService interface {
+type IMessageService interface {
 	Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error)
 	Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error)
 	GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error)
 	Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error)
 }
 
-type ApiMessageService struct {
-	messageRepository *elastic.MessageRepository
+type MessageService struct {
+	messageRepository elastic.IMessageRepository
 }
 
-func InitMessageService(messageRepository *elastic.MessageRepository) *ApiMessageService {
-	return &ApiMessageService{
+func InitMessageService(messageRepository elastic.IMessageRepository) *MessageService {
+	return &MessageService{
 		messageRepository: messageRepository,
 	}
 }
 
-func (api *ApiMessageService) GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error) {
-	messages, err := api.messageRepository.GetPaginated(request.Limit, request.Offset) // Get paginated messages
+func (svc *MessageService) GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error) {
+	messages, err := svc.messageRepository.GetPaginated(request.Limit, request.Offset) // Get paginated messages
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,8 @@ func (api *ApiMessageService) GetPaginated(request *dto.GetMessagesRequest) ([]*
 	return response, nil
 }
 
-func (api *ApiMessageService) Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error) {
-	message, err := api.messageRepository.Get(request.ID)
+func (svc *MessageService) Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error) {
+	message, err := svc.messageRepository.Get(request.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +69,14 @@ func (api *ApiMessageService) Get(request *dto.GetMessageRequest) (*dto.GetMessa
 }
 
 // Enroll a student in a course
-func (api *ApiMessageService) Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error) {
+func (svc *MessageService) Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error) {
 	/*  1. Save the message in the message repository.
 	 *  2. Return the message to the caller.
 	 */
 
 	// 1. Save the message in the message repository.
 	id := uuid.New().String()
-	err := api.messageRepository.Save(&dto.Message{
+	err := svc.messageRepository.Save(&dto.Message{
 		ID:        id,
 		Author:    request.Author,
 		CreatedAt: time.Now(),
@@ -92,12 +92,12 @@ func (api *ApiMessageService) Save(request *dto.CreateMessageRequest) (*dto.Crea
 	}, nil
 }
 
-func (api *ApiMessageService) Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error) {
+func (svc *MessageService) Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error) {
 	/*  1. Search for messages in the message repository.
 	 *  3. Return the messages and total number of messages to the caller.
 	 */
 	
-	messages, err := api.messageRepository.Search(request.Query, request.Limit, request.Offset) // Get paginated messages
+	messages, err := svc.messageRepository.Search(request.Query, request.Limit, request.Offset) // Get paginated messages
 	if err != nil {
 		return nil, err
 	}
