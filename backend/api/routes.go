@@ -13,6 +13,7 @@ func (api *MessageAPI) RegisterRoutes() {
 	api.server.POST("/messages", api.createMessage) // Create or update a message
 	api.server.GET("/messages", api.getPaginatedMessages) // Get messages with pagination
 	api.server.GET("/messages/:id", api.getMessage) // Get a message by ID
+	api.server.POST("/messages/:id", api.updateMessage) // Update a message by its ID
 	api.server.GET("/search/messages", api.searchMessages) // Search messages
 }
 

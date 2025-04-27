@@ -8,12 +8,19 @@ Execute the following command: `go run main.go` from this `README.md`'s director
 
 To fetch unauthenticated endpoints:
 
-Create (or update, by message ID) a message:
+Create a message:
 
 ```bash
 $ curl -X POST 'http://localhost:8080/messages' -H "Content-Type: application/json" -d '{"author":"Johan Dome", "content":"Hallo World!"}'
 
 {"messageId":"abe5eb64-b159-4ae1-9c8a-34d7a2d33d48"}
+```
+
+Update a message by its ID:
+
+```bash
+$ curl -X POST 'http://localhost:8080/messages/abe5eb64-b159-4ae1-9c8a-34d7a2d33d48' -H "Content-Type: application/json" -d '{"content":"Hola Warudo!"}'
+ 
 ```
 
 Get a message by its ID:
@@ -39,3 +46,6 @@ $ curl -X GET 'http://localhost:8080/search/messages?query=hallo&limit=10&offset
 
 [{"id":"abe5eb64-b159-4ae1-9c8a-34d7a2d33d48","author":"Johan Dome","createdAt":"2025-04-27T11:49:29.43003473+02:00","content":"Hallo, world!"}]
 ```
+
+Search queries are currently only operated on message content, not author: author could be an ID. In the current deployment, author is an Elasticsearch keyword.
+Author is full text in the above queries for readability purposes. However, there is no UUID validation on the author field.

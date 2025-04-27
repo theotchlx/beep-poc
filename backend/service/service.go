@@ -15,6 +15,7 @@ import (
 
 type IMessageService interface {
 	Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error)
+	Update(request *dto.UpdateMessageRequest) error
 	Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error)
 	GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error)
 	Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error)
@@ -54,7 +55,6 @@ func (svc *MessageService) Get(request *dto.GetMessageRequest) (*dto.GetMessageR
 	if err != nil {
 		return nil, err
 	}
-
 	if message == nil {
 		return nil, nil
 	}
@@ -68,7 +68,6 @@ func (svc *MessageService) Get(request *dto.GetMessageRequest) (*dto.GetMessageR
 	}, nil
 }
 
-// Enroll a student in a course
 func (svc *MessageService) Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error) {
 	/*  1. Save the message in the message repository.
 	 *  2. Return the message to the caller.
@@ -90,6 +89,34 @@ func (svc *MessageService) Save(request *dto.CreateMessageRequest) (*dto.CreateM
 	return &dto.CreateMessageResponse{
 		MessageID: id,
 	}, nil
+}
+
+func (svc *MessageService) Update(request *dto.UpdateMessageRequest) error {
+	/*  1. Get the message by its ID.
+	 *  2. Save the message in the message repository.
+	 */
+
+	// 1. Get the message by its ID.
+	message, err := svc.messageRepository.Get(request.ID)
+	if err != nil {
+		return err
+	}
+	if message == nil {
+		return nil
+	}
+
+	// 2. Save the updated message in the message repository.
+	err = svc.messageRepository.Save(&dto.Message{
+		ID:        message.ID,
+		Author:    message.Author,
+		CreatedAt: message.CreatedAt,
+		Content:   request.Content,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (svc *MessageService) Search(request *dto.SearchMessagesRequest) ([]*dto.GetMessageResponse, error) {

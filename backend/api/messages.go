@@ -109,6 +109,25 @@ func (api *MessageAPI) createMessage(c echo.Context) error {
 	return c.JSON(http.StatusCreated, message)
 }
 
+func (api *MessageAPI) updateMessage(c echo.Context) error {
+	// First step is to validate and unmarshal the received request into a DTO.
+	updateMessage := new(dto.UpdateMessageRequest)
+	if err := c.Bind(updateMessage); err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(updateMessage); err != nil {
+		return err
+	}
+
+	// Then, we call the service to return its response DTO.
+	err := api.service.Update(updateMessage)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
 func (api *MessageAPI) searchMessages(c echo.Context) error {
 	// Parse query parameters
 	query := c.QueryParam("query")
