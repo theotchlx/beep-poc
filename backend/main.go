@@ -4,8 +4,10 @@ import (
 	"beep-poc-backend/api"
 	"beep-poc-backend/repository/elastic"
 	"beep-poc-backend/service"
+	"fmt"
 
 	"log"
+
 	"github.com/elastic/go-elasticsearch/v9"
 )
 
@@ -17,6 +19,12 @@ func main() {
 	}
 
 	repository := elastic.NewMessageRepository(client) // Init Elasticsearch Messages repository
+
+	message, err := repository.Get("1a") // Test the repository with a sample ID.
+	if err != nil {
+		log.Fatalf("Error getting message: %s", err)
+	}
+	fmt.Printf("Message: %v\n", message)
 
 	service := service.InitMessageService(repository) // Init Messages/Gateway service API functions.
 	api := api.InitMessageAPI(service) // Init HTTP and broker APIs with the service.

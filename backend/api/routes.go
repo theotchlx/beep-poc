@@ -10,10 +10,10 @@ func (api *MessageAPI) RegisterRoutes() {
 	api.server.Use(middleware.Recover())
 
 	// API routes
-	endpoints := api.server.Group("/api")
-	endpoints.GET("/messages", api.getAllMessages)
-	endpoints.GET("/messages/:id", api.getMessage)
-	endpoints.POST("/messages", api.createMessage)
+	api.server.POST("/messages", api.createMessage) // Create or update a message
+	api.server.GET("/messages", api.getPaginatedMessages) // Get messages with pagination
+	api.server.GET("/messages/:id", api.getMessage) // Get a message by ID
+	api.server.GET("/search/messages", api.searchMessages) // Search messages
 }
 
 func (api *MessageAPI) Start(port string) {
