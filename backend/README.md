@@ -2,7 +2,13 @@
 
 ## Running the backend
 
-Execute the following command: `go run main.go` from this `README.md`'s directory.
+Execute the following commands:
+```bash
+export ES_ADDRESS=http://0.0.0.0:9200
+export ES_USERNAME=elastic
+export ES_PASSWORD=thisisaverystrongpassword
+go run main.go
+``` from this `README.md`'s directory.
 
 ## Trying it out
 

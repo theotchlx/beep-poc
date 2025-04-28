@@ -1,7 +1,6 @@
 package elastic
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,230 +8,108 @@ import (
 	"beep-poc-backend/dto"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/esapi"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/textquerytype"
 )
 
 type IMessageRepository interface {
-	Save(message *dto.Message) error // Save a message to the repository (create or update).
-	Get(id string) (*dto.Message, error)  // Get a message by ID.
+	Save(message *dto.Message) error     // Save a message to the repository (create or update).
+	Get(id string) (*dto.Message, error) // Get a message by ID.
 	GetPaginated(limit int, offset int) ([]dto.Message, error)
 	Search(query string, limit int, offset int) ([]dto.Message, error) // Search for messages based on a query string.
-	SearchTotalQuantity(query string) (int, error) // Get the total number of messages that match a query string.
 }
 
 const indexName = "messages"
 
 type MessageRepository struct {
-	client *elasticsearch.Client
+	client *elasticsearch.TypedClient
 }
 
-func NewMessageRepository(client *elasticsearch.Client) *MessageRepository {
+func NewMessageRepository(client *elasticsearch.TypedClient) *MessageRepository {
 	return &MessageRepository{client: client}
 }
-//TODO: init elastic client / create index if not exist, here?
 
 func (r *MessageRepository) Save(message *dto.Message) error {
-	data, err := json.Marshal(message)
+	req := r.client.Index(indexName).
+		Request(message).
+		Id(message.ID)
+
+	_, err := req.Do(context.Background())
 	if err != nil {
-		return fmt.Errorf("error marshaling message: %w", err)
-	}
-
-	req := esapi.IndexRequest{
-		Index:      indexName,
-		DocumentID: message.ID,
-		Body:       bytes.NewReader(data),
-		Refresh:    "true",
-	}
-
-	res, err := req.Do(context.Background(), r.client)
-	if err != nil {
-		return fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return fmt.Errorf("error indexing document ID=%s: %s", message.ID, res.String())
+		return fmt.Errorf("error indexing document ID=%s: %w", message.ID, err)
 	}
 
 	return nil
 }
 
 func (r *MessageRepository) Get(id string) (*dto.Message, error) {
-	req := esapi.GetRequest{
-		Index:      indexName,
-		DocumentID: id,
-	}
-
-	res, err := req.Do(context.Background(), r.client)
+	res, err := r.client.Get(indexName, id).Do(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		if res.StatusCode == 404 {
-			return nil, nil // Document not found
-		}
-		return nil, fmt.Errorf("error getting document ID=%s: %s", id, res.String())
+		return nil, fmt.Errorf("error getting document ID=%s: %w", id, err)
 	}
 
-	var result struct {
-		Source dto.Message `json:"_source"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error parsing the response body: %w", err)
+	if !res.Found {
+		return nil, nil // Document not found
 	}
 
-	return &result.Source, nil
+	var message dto.Message
+	if err := json.Unmarshal(res.Source_, &message); err != nil {
+		return nil, fmt.Errorf("error unmarshalling document source: %w", err)
+	}
+
+	return &message, nil
 }
 
 func (r *MessageRepository) GetPaginated(limit int, offset int) ([]dto.Message, error) {
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"match_all": map[string]interface{}{},
-		},
-		"from": offset,
-		"size": limit,
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		return nil, fmt.Errorf("error encoding query: %w", err)
-	}
-
-	res, err := r.client.Search(
-		r.client.Search.WithContext(context.Background()),
-		r.client.Search.WithIndex(indexName),
-		r.client.Search.WithBody(&buf),
-		r.client.Search.WithTrackTotalHits(true),
-		r.client.Search.WithPretty(),
-	)
+	res, err := r.client.Search().
+		Index(indexName).
+		Request(&search.Request{
+			Query: &types.Query{
+				MatchAll: &types.MatchAllQuery{},
+			},
+			From: &offset,
+			Size: &limit,
+		}).
+		Do(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return nil, fmt.Errorf("error searching documents: %s", res.String())
+		return nil, fmt.Errorf("error executing search query: %w", err)
 	}
 
-	var result struct {
-		Hits struct {
-			Hits []struct {
-				Source dto.Message `json:"_source"`
-			} `json:"hits"`
-		} `json:"hits"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error parsing the response body: %w", err)
-	}
-
-	messages := make([]dto.Message, len(result.Hits.Hits))
-	for i, hit := range result.Hits.Hits {
-		messages[i] = hit.Source
+	messages := make([]dto.Message, len(res.Hits.Hits))
+	for i, hit := range res.Hits.Hits {
+		if err := json.Unmarshal(hit.Source_, &messages[i]); err != nil {
+			return nil, fmt.Errorf("error unmarshalling hit source: %w", err)
+		}
 	}
 
 	return messages, nil
 }
 
 func (r *MessageRepository) Search(query string, limit int, offset int) ([]dto.Message, error) {
-	searchQuery := map[string]interface{}{
-		"query": map[string]interface{}{
-			"multi_match": map[string]interface{}{
-				"query":     query,
-				"fields":    []string{"content"}, // Here we search on one field (content) but could add more.
-				"operator":  "and",
-				"type":      "phrase_prefix", // To match on parts of words (instead of whole words).
+	res, err := r.client.Search().Index(indexName).Request(&search.Request{
+		Query: &types.Query{
+			MultiMatch: &types.MultiMatchQuery{
+				Query:    query,
+				Fields:   []string{"content"}, // Here we search on one field (content) but could add more.
+				Operator: &operator.And,
+				Type:     &textquerytype.Phraseprefix, // To match on parts of words (instead of whole words).
 			},
 		},
-		"from": offset,
-		"size": limit,
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(searchQuery); err != nil {
-		return nil, fmt.Errorf("error encoding query: %w", err)
-	}
-
-	res, err := r.client.Search(
-		r.client.Search.WithContext(context.Background()),
-		r.client.Search.WithIndex(indexName),
-		r.client.Search.WithBody(&buf),
-		r.client.Search.WithTrackTotalHits(true),
-		r.client.Search.WithPretty(),
-	)
+		From: &offset,
+		Size: &limit,
+	}).Do(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return nil, fmt.Errorf("error searching documents: %s", res.String())
+		return nil, fmt.Errorf("error executing search query: %w", err)
 	}
 
-	var result struct {
-		Hits struct {
-			Hits []struct {
-				Source dto.Message `json:"_source"`
-			} `json:"hits"`
-		} `json:"hits"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error parsing the response body: %w", err)
-	}
-
-	messages := make([]dto.Message, len(result.Hits.Hits))
-	for i, hit := range result.Hits.Hits {
-		messages[i] = hit.Source
+	messages := make([]dto.Message, len(res.Hits.Hits))
+	for i, hit := range res.Hits.Hits {
+		if err := json.Unmarshal(hit.Source_, &messages[i]); err != nil {
+			return nil, fmt.Errorf("error unmarshalling hit source: %w", err)
+		}
 	}
 
 	return messages, nil
-}
-
-func (r *MessageRepository) SearchTotalQuantity(query string) (int, error) {
-	searchQuery := map[string]interface{}{
-		"query": map[string]interface{}{
-			"multi_match": map[string]interface{}{
-				"query":     query,
-				"fields":    []string{"content"}, // Here we search on one field (content) but could add more.
-				"operator":  "and",
-				"type":      "phrase_prefix", // To match on parts of words (instead of whole words).
-			},
-		},
-		"size": 0, // We only need the count
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(searchQuery); err != nil {
-		return 0, fmt.Errorf("error encoding query: %w", err)
-	}
-
-	res, err := r.client.Search(
-		r.client.Search.WithContext(context.Background()),
-		r.client.Search.WithIndex(indexName),
-		r.client.Search.WithBody(&buf),
-		r.client.Search.WithTrackTotalHits(true),
-		r.client.Search.WithPretty(),
-	)
-	if err != nil {
-		return 0, fmt.Errorf("error getting response: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		return 0, fmt.Errorf("error searching documents: %s", res.String())
-	}
-
-	var result struct {
-		Hits struct {
-			Total struct {
-				Value int `json:"value"`
-			} `json:"total"`
-		} `json:"hits"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return 0, fmt.Errorf("error parsing the response body: %w", err)
-	}
-
-	return result.Hits.Total.Value, nil
 }
