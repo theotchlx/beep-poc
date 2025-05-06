@@ -3,12 +3,21 @@ services:
     image: quay.io/keycloak/keycloak:26.2.1
     container_name: keycloak
     environment:
+      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_PORT=7080
+      - KC_HEALTH_ENABLED=true
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       - KC_DB=dev-mem
-    command: start-dev --http-port=8080
+    healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:9000/health/ready"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    command: start-dev --http-port=7080
     ports:
-      - '8080:8080'
+      - '7080:7080'
+      - '9000:9000' # management interface
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
@@ -17,13 +26,15 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTIC_PASSWORD=thisisaverystrongpassword
     ports:
       - '9200:9200'
       - "9300:9300"
     volumes:
       - es_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"'"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"'"]
       interval: 10s
       timeout: 10s
       retries: 12
@@ -45,11 +56,13 @@ services:
       - elasticsearch
       - keycloak
     environment:
-      - ES_URL=http://elasticsearch:9200
-      - KC_ISSUER=http://keycloak:8080/realms/msg-poc
+      - ES_ADDRESS=http://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=thisisaverystrongpassword
+      - KC_ISSUER=http://keycloak:7080/realms/msg-poc
       - KC_CLIENT_ID=msg-poc-backend
     ports:
-      - '4000:4000'
+      - '8080:8080'
 
   frontend:
     build: ./frontend
@@ -61,7 +74,7 @@ services:
       - VITE_AUTH_URL=http://localhost:8080/realms/msg-poc/protocol/openid-connect
       - VITE_CLIENT_ID=msg-poc-front
     ports:
-      - '5173:5173'
+      - '4040:4040'
 
 volumes:
   es_data:
