@@ -3,6 +3,7 @@
 ## Running the backend
 
 Execute the following commands:
+
 ```bash
 export ES_ADDRESS=http://0.0.0.0:9200
 export ES_USERNAME=elastic
