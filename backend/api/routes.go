@@ -1,11 +1,13 @@
 package api
 
+import (
+	"github.com/labstack/echo/v4/middleware"
+)
+
 // API routes definition.
 
-import "github.com/labstack/echo/v4/middleware"
-
 func (api *MessageAPI) RegisterRoutes() {
-	// Middleware
+	// Echo middlewares
 	api.server.Use(middleware.Logger())
 	api.server.Use(middleware.Recover())
 
