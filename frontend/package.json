@@ -1,31 +1,12 @@
 {
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "2.1.0",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "oidc-client-ts": "^3.2.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-oidc-context": "^3.3.0"
+    "check": "biome check --write .",
+    "toc": "markdown-toc -i README.md",
+    "docker-compose-all": "cp .env.sample .env && docker compose build && docker compose up"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.0",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "eslint": "^9.25.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^16.0.0",
-    "typescript": "~5.8.3",
-    "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "@biomejs/biome": "^1.9.4",
+    "markdown-toc": "^1.2.0"
   }
 }
