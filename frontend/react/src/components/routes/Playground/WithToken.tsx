@@ -11,11 +11,11 @@ export const WithToken: FC = () => {
     // simulate slow network
     await sleep(500);
 
-    const url = '/api/payload';
+    const url = '/messages';
 
-    const response = await fetch(url, {
+    const response = await fetch(`${url}?limit=100&offset=0`, {
       headers: {
-        authorization: `Bearer ${auth.user?.access_token}`,
+      authorization: `Bearer ${auth.user?.access_token}`,
       },
     });
 

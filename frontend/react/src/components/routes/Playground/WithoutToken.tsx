@@ -8,9 +8,9 @@ export const WithoutToken: FC = () => {
     // simulate slow network
     await sleep(500);
 
-    const url = '/api/payload';
+    const url = '/messages';
 
-    const response = await fetch(url);
+    const response = await fetch(`${url}?limit=100&offset=0`);
 
     if (!response.ok) {
       throw new Error(`Unexpected response status: ${response.status}`);
