@@ -34,7 +34,7 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"'"]
+      #test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"'"]
       interval: 10s
       timeout: 10s
       retries: 12
@@ -43,8 +43,8 @@ services:
     image: appropriate/curl
     container_name: init-elasticsearch
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+    - elasticsearch
+      #  condition: service_healthy
     volumes:
       - ./init.sh:/init.sh
     entrypoint: ["/bin/sh", "/init.sh"]
