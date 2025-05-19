@@ -47,13 +47,14 @@ export const Home: FC = () => {
     e.preventDefault(); // Prevent form submission from reloading the page
 
     try {
+      const author = auth.user?.profile.preferred_username || auth.user?.profile.email || 'Unknown'; // Extract author from token
       const response = await fetch('http://localhost:8080/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.user?.access_token}`,
         },
-        body: JSON.stringify({ content: newMessage }),
+        body: JSON.stringify({ author, content: newMessage }),
       });
 
       if (!response.ok) {
