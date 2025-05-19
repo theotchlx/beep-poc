@@ -15,6 +15,7 @@ import (
 
 type IMessageService interface {
 	Save(request *dto.CreateMessageRequest) (*dto.CreateMessageResponse, error)
+	Delete(request *dto.DeleteMessageRequest) error
 	Update(request *dto.UpdateMessageRequest) error
 	Get(request *dto.GetMessageRequest) (*dto.GetMessageResponse, error)
 	GetPaginated(request *dto.GetMessagesRequest) ([]*dto.GetMessageResponse, error)
@@ -89,6 +90,29 @@ func (svc *MessageService) Save(request *dto.CreateMessageRequest) (*dto.CreateM
 	return &dto.CreateMessageResponse{
 		MessageID: id,
 	}, nil
+}
+
+func (svc *MessageService) Delete(request *dto.DeleteMessageRequest) error {
+	/*  1. Get the message by its ID.
+	 *  2. Delete the message in the message repository.
+	 */
+
+	// 1. Get the message by its ID.
+	message, err := svc.messageRepository.Get(request.ID)
+	if err != nil {
+		return err
+	}
+	if message == nil {
+		return nil
+	}
+
+	// 2. Delete the message in the message repository.
+	err = svc.messageRepository.Delete(message.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (svc *MessageService) Update(request *dto.UpdateMessageRequest) error {

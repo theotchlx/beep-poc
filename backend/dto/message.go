@@ -5,15 +5,19 @@ import (
 )
 
 type Message struct {
-    ID        string    `json:"id"`
-    Author    string    `json:"author"`
-    CreatedAt time.Time `json:"createdAt"`
-    Content   string    `json:"content"`
+	ID        string    `json:"id"`
+	Author    string    `json:"author"`
+	CreatedAt time.Time `json:"createdAt"`
+	Content   string    `json:"content"`
 }
 
 type CreateMessageRequest struct {
 	Author  string `json:"author" validate:"required"`
 	Content string `json:"content"`
+}
+
+type DeleteMessageRequest struct {
+	ID string `param:"id" validate:"uuid"`
 }
 
 type UpdateMessageRequest struct {

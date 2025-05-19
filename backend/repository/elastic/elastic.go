@@ -16,6 +16,7 @@ import (
 
 type IMessageRepository interface {
 	Save(message *dto.Message) error     // Save a message to the repository (create or update).
+	Delete(id string) error              // Delete a message by ID.
 	Get(id string) (*dto.Message, error) // Get a message by ID.
 	GetPaginated(limit int, offset int) ([]dto.Message, error)
 	Search(query string, limit int, offset int) ([]dto.Message, error) // Search for messages based on a query string.
@@ -41,6 +42,14 @@ func (r *MessageRepository) Save(message *dto.Message) error {
 		return fmt.Errorf("error indexing document ID=%s: %w", message.ID, err)
 	}
 
+	return nil
+}
+
+func (r *MessageRepository) Delete(id string) error {
+	_, err := r.client.Delete(indexName, id).Do(context.Background())
+	if err != nil {
+		return fmt.Errorf("error deleting document ID=%s: %w", id, err)
+	}
 	return nil
 }
 

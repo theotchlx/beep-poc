@@ -128,6 +128,25 @@ func (api *MessageAPI) createMessage(c echo.Context) error {
 	return c.JSON(http.StatusCreated, message)
 }
 
+func (api *MessageAPI) deleteMessage(c echo.Context) error {
+	// First step is to validate and unmarshal the received request into a DTO.
+	deleteMessage := new(dto.DeleteMessageRequest)
+	if err := c.Bind(deleteMessage); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+	if err := c.Validate(deleteMessage); err != nil {
+		return err
+	}
+
+	// Then, we call the service to return its response DTO.
+	err := api.service.Delete(deleteMessage)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
 func (api *MessageAPI) updateMessage(c echo.Context) error {
 	// First step is to validate and unmarshal the received request into a DTO.
 	updateMessage := new(dto.UpdateMessageRequest)

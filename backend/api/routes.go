@@ -15,6 +15,7 @@ import (
 func (api *MessageAPI) RegisterMessageRoutes(group *echo.Group) {
 	// Protected API routes
 	group.POST("/messages", api.createMessage)        // Create or update a message
+	group.DELETE("/messages/:id", api.deleteMessage)  // Delete a message by ID
 	group.GET("/messages", api.getPaginatedMessages)  // Get messages with pagination
 	group.GET("/messages/:id", api.getMessage)        // Get a message by ID
 	group.POST("/messages/:id", api.updateMessage)    // Update a message by its ID
