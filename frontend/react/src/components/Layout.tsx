@@ -56,8 +56,6 @@ export const Layout: FC<LayoutProps> = (props) => {
   const auth = useAuth();
   const navigate = useNavigate();
 
-  const registrationUrl = `http://localhost:7080/realms/beep-poc/protocol/openid-connect/registrations?client_id=${import.meta.env.VITE_CLIENT_ID}&redirect_uri=${window.location.origin}`;
-
   const navItems: NavItemType[] = [
     {
       text: 'Home',
@@ -71,13 +69,6 @@ export const Layout: FC<LayoutProps> = (props) => {
       protected: true,
       action: () => {
         navigate(appRoutes.playground);
-      },
-    },
-    {
-      text: 'Register',
-      protected: false,
-      action: () => {
-        window.location.href = registrationUrl;
       },
     },
     {
