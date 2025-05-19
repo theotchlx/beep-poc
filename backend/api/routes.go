@@ -42,7 +42,7 @@ func Start(messApi *MessageAPI, pubApi *PublicAPI, port string) {
 	}
 
 	// Public routes (no authentication)
-	publicGroup := e.Group("/public")
+	publicGroup := e.Group("/pub")
 	pubApi.RegisterPublicRoutes(publicGroup)
 
 	// Protected routes (with authentication)
