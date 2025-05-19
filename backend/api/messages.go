@@ -12,8 +12,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"beep-poc-backend/dto"
-	"beep-poc-backend/service"
 	authn "beep-poc-backend/middlewares/authentication"
+	"beep-poc-backend/service"
 )
 
 // Request body validator.
@@ -40,16 +40,16 @@ func InitMessageAPI(service service.IMessageService) *MessageAPI {
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
 
-    // Initialize Keycloak auth
-    keycloakCfg := authn.Config{
-        IssuerURL: "http://localhost:7080/realms/beep-poc",
-        ClientID:  "beep-poc-front",
-    }
-    authMw, err := authn.NewAuthMiddleware(keycloakCfg)
-    if err != nil {
-        log.Fatalf("failed to init Keycloak auth: %v", err)
-    }
-    e.Use(authMw.MiddlewareFunc()) // Protect routes with authentication middleware
+	// Initialize Keycloak auth
+	keycloakCfg := authn.Config{
+		IssuerURL: "http://localhost:7080/realms/beep-poc",
+		ClientID:  "beep-poc-front",
+	}
+	authMw, err := authn.NewAuthMiddleware(keycloakCfg)
+	if err != nil {
+		log.Fatalf("failed to init Keycloak auth: %v", err)
+	}
+	e.Use(authMw.MiddlewareFunc()) // Protect routes with authentication middleware
 
 	return &MessageAPI{
 		server:  e,
