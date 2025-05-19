@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -27,6 +28,9 @@ func (api *PublicAPI) RegisterPublicRoutes(group *echo.Group) {
 
 func Start(messApi *MessageAPI, pubApi *PublicAPI, port string) {
 	e := echo.New()
+
+	// Register custom API validator
+	e.Validator = &CustomValidator{validator: validator.New()}
 
 	// Echo middlewares
 	e.Use(middleware.Logger())
