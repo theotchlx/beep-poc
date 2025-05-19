@@ -4,7 +4,7 @@ import { hasAuthParams, useAuth } from 'react-oidc-context';
 import { Alert } from './Alert.tsx';
 
 const getAuthHealth = async () => {
-  const response = await fetch('/api/auth-well-known-config');
+  const response = await fetch('/public/auth-well-known-config');
   if (!response.ok) {
     throw new Error('Please confirm your auth server is up');
   }
