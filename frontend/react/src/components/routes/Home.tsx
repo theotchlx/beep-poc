@@ -15,8 +15,8 @@ export const Home: FC = () => {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [newMessage, setNewMessage] = useState<string>(''); // State for the new message
-  const [isSending, setIsSending] = useState<boolean>(false); // State for sending a message
+  const [newMessage, setNewMessage] = useState<string>('');
+  const [isSending, setIsSending] = useState<boolean>(false);
 
   const fetchMessages = async () => {
     try {
@@ -34,7 +34,7 @@ export const Home: FC = () => {
       }
 
       const data = await response.json();
-      setMessages(data); // Assuming the backend returns an array of messages
+      setMessages(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -46,22 +46,41 @@ export const Home: FC = () => {
     fetchMessages();
   }, [auth.user?.access_token]);
 
-  const handleSendMessage = async (e: FormEvent) => {
-    e.preventDefault(); // Prevent form submission from reloading the page
-  
+  const handleDeleteMessage = async (id: string) => {
     try {
-      setIsSending(true); // Set sending state
-      const author = auth.user?.profile.preferred_username || auth.user?.profile.email || 'Unknown'; // Extract author from token
-  
-      // Optimistically add the new message to the state
+      const response = await fetch(`http://localhost:8080/messages/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${auth.user?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete message: ${response.statusText}`);
+      }
+
+      // Remove the deleted message from the state
+      setMessages((prevMessages) => prevMessages.filter((message) => message.id !== id));
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleSendMessage = async (e: FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setIsSending(true);
+      const author = auth.user?.profile.preferred_username || auth.user?.profile.email || 'Unknown';
+
       const optimisticMessage = {
-        id: `temp-${Date.now()}`, // Temporary ID for the new message
+        id: `temp-${Date.now()}`,
         author,
         content: newMessage,
-        createdAt: new Date().toISOString(), // Use the current timestamp
+        createdAt: new Date().toISOString(),
       };
       setMessages((prevMessages) => [optimisticMessage, ...prevMessages]);
-  
+
       const response = await fetch('http://localhost:8080/messages', {
         method: 'POST',
         headers: {
@@ -70,35 +89,24 @@ export const Home: FC = () => {
         },
         body: JSON.stringify({ author, content: newMessage }),
       });
-  
+
       if (!response.ok) {
         throw new Error(`Failed to send message: ${response.statusText}`);
       }
-  
+
       const createdMessage = await response.json();
-  
-      // Replace the optimistic message with the actual message from the backend
       setMessages((prevMessages) =>
         prevMessages.map((message) =>
           message.id === optimisticMessage.id ? createdMessage : message
         )
       );
-  
-      setNewMessage(''); // Clear the textbox
-  
-      // Wait a little before refetching messages
-      setTimeout(() => {
-        fetchMessages();
-      }, 1000);
+
+      setNewMessage('');
+      fetchMessages();
     } catch (err: any) {
       setError(err.message);
-  
-      // Remove the optimistic message if the request fails
-      setMessages((prevMessages) =>
-        prevMessages.filter((message) => !message.id.startsWith('temp-'))
-      );
     } finally {
-      setIsSending(false); // Reset sending state
+      setIsSending(false);
     }
   };
 
@@ -109,6 +117,8 @@ export const Home: FC = () => {
   if (error) {
     return <p>Error: {error}</p>;
   }
+
+  const loggedInUser = auth.user?.profile.preferred_username || auth.user?.profile.email;
 
   return (
     <>
@@ -122,6 +132,8 @@ export const Home: FC = () => {
             key={message.id}
             author={message.author}
             content={message.content}
+            isAuthor={message.author === loggedInUser} // Check if the logged-in user is the author
+            onDelete={() => handleDeleteMessage(message.id)} // Pass the delete handler
           />
         ))
       ) : (
@@ -136,7 +148,7 @@ export const Home: FC = () => {
           placeholder="Write your message here..."
           rows={4}
           style={{ width: '100%', marginBottom: '8px' }}
-          disabled={isSending} // Disable textarea while sending
+          disabled={isSending}
         />
         <button type="submit" disabled={!newMessage.trim() || isSending}>
           {isSending ? 'Sending...' : 'Send'}
