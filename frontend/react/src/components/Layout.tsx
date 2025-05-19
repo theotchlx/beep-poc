@@ -92,7 +92,7 @@ export const Layout: FC<LayoutProps> = (props) => {
   return (
     <Container>
       <NavBar>
-        <NavTitle>Example App</NavTitle>
+        <NavTitle>The Beeplet</NavTitle>
         <NavButtons>
           {navItems.map((item) => (
             <NavButton key={item.text} onClick={item.action}>
