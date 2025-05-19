@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { Message } from '../Message.tsx';
 
 interface MessageData {
+  id: string;
   author: string;
   content: string;
+  createdAt: string;
 }
 
 export const Home: FC = () => {
@@ -14,40 +16,52 @@ export const Home: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [newMessage, setNewMessage] = useState<string>(''); // State for the new message
+  const [isSending, setIsSending] = useState<boolean>(false); // State for sending a message
+
+  const fetchMessages = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('http://localhost:8080/messages?limit=100&offset=0', {
+        headers: {
+          Authorization: `Bearer ${auth.user?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch messages: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setMessages(data); // Assuming the backend returns an array of messages
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch('http://localhost:8080/messages?limit=100&offset=0', {
-          headers: {
-            Authorization: `Bearer ${auth.user?.access_token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch messages: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        setMessages(data); // Assuming the backend returns an array of messages
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMessages();
   }, [auth.user?.access_token]);
 
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault(); // Prevent form submission from reloading the page
-
+  
     try {
+      setIsSending(true); // Set sending state
       const author = auth.user?.profile.preferred_username || auth.user?.profile.email || 'Unknown'; // Extract author from token
+  
+      // Optimistically add the new message to the state
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`, // Temporary ID for the new message
+        author,
+        content: newMessage,
+        createdAt: new Date().toISOString(), // Use the current timestamp
+      };
+      setMessages((prevMessages) => [optimisticMessage, ...prevMessages]);
+  
       const response = await fetch('http://localhost:8080/messages', {
         method: 'POST',
         headers: {
@@ -56,16 +70,35 @@ export const Home: FC = () => {
         },
         body: JSON.stringify({ author, content: newMessage }),
       });
-
+  
       if (!response.ok) {
         throw new Error(`Failed to send message: ${response.statusText}`);
       }
-
+  
       const createdMessage = await response.json();
-      setMessages((prevMessages) => [createdMessage, ...prevMessages]); // Add the new message to the list
+  
+      // Replace the optimistic message with the actual message from the backend
+      setMessages((prevMessages) =>
+        prevMessages.map((message) =>
+          message.id === optimisticMessage.id ? createdMessage : message
+        )
+      );
+  
       setNewMessage(''); // Clear the textbox
+  
+      // Wait a little before refetching messages
+      setTimeout(() => {
+        fetchMessages();
+      }, 1000);
     } catch (err: any) {
       setError(err.message);
+  
+      // Remove the optimistic message if the request fails
+      setMessages((prevMessages) =>
+        prevMessages.filter((message) => !message.id.startsWith('temp-'))
+      );
+    } finally {
+      setIsSending(false); // Reset sending state
     }
   };
 
@@ -84,8 +117,12 @@ export const Home: FC = () => {
 
       <h2>Messages</h2>
       {messages.length > 0 ? (
-        messages.map((message, index) => (
-          <Message key={index} author={message.author} content={message.content} />
+        messages.map((message) => (
+          <Message
+            key={message.id}
+            author={message.author}
+            content={message.content}
+          />
         ))
       ) : (
         <p>No messages found.</p>
@@ -99,9 +136,10 @@ export const Home: FC = () => {
           placeholder="Write your message here..."
           rows={4}
           style={{ width: '100%', marginBottom: '8px' }}
+          disabled={isSending} // Disable textarea while sending
         />
-        <button type="submit" disabled={!newMessage.trim()}>
-          Send
+        <button type="submit" disabled={!newMessage.trim() || isSending}>
+          {isSending ? 'Sending...' : 'Send'}
         </button>
       </form>
     </>
