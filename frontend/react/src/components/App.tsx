@@ -5,6 +5,14 @@ import { Home } from './routes/Home.tsx';
 import { NotFound } from './routes/NotFound.tsx';
 import { Playground } from './routes/Playground/Playground.tsx';
 
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  console.log('Fetch request:', args);
+  const response = await originalFetch(...args);
+  console.log('Fetch response:', response);
+  return response;
+};
+
 export const App: FC = () => {
   return (
     <Routes>

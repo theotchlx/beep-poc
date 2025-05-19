@@ -78,6 +78,13 @@ export const Layout: FC<LayoutProps> = (props) => {
         void auth.signoutRedirect();
       },
     },
+    {
+      text: 'Login',
+      protected: false,
+      action: () => {
+        void auth.signinRedirect();
+      },
+    },
   ].filter((item) => {
     return auth.isAuthenticated || !item.protected;
   });

@@ -4,11 +4,24 @@ import { hasAuthParams, useAuth } from 'react-oidc-context';
 import { Alert } from './Alert.tsx';
 
 const getAuthHealth = async () => {
-  const response = await fetch('/public/auth-well-known-config');
+  const response = await fetch('http://localhost:8080/pub/auth-well-known-config');
+  console.log('Raw response:', response);
+
   if (!response.ok) {
     throw new Error('Please confirm your auth server is up');
   }
-  return await response.json();
+
+  const text = await response.text();
+  console.log('Response body (raw):', text);
+
+  try {
+    const json = JSON.parse(text);
+    console.log('Parsed JSON:', json);
+    return json;
+  } catch (e) {
+    console.error('Error parsing JSON:', e);
+    throw new Error('Invalid JSON response from /pub/auth-well-known-config');
+  }
 };
 
 interface ProtectedAppProps {
@@ -23,6 +36,10 @@ export const ProtectedApp: FC<ProtectedAppProps> = (props) => {
     queryFn: getAuthHealth,
     retry: false,
   });
+  
+  if (getAuthHealthError) {
+    console.error('Error in getAuthHealth:', getAuthHealthError);
+  }
 
   const auth = useAuth();
   const [hasTriedSignin, setHasTriedSignin] = useState(false);
