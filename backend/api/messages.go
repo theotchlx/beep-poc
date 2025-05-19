@@ -80,6 +80,12 @@ func (api *MessageAPI) getPaginatedMessages(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+
+	// Return an empty list if no messages are found.
+	if messages == nil {
+		messages = []*dto.GetMessageResponse{}
+	}
+
 	return c.JSON(http.StatusOK, messages)
 }
 
