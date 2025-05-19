@@ -29,9 +29,9 @@ func (api *PublicAPI) RegisterPublicRoutes() {
 }
 
 func Start(messApi *MessageAPI, pubApi *PublicAPI, port string) {
-	messApi.RegisterMessageRoutes()
-	messApi.server.Logger.Fatal(messApi.server.Start(port))
-
 	pubApi.RegisterPublicRoutes()
 	pubApi.server.Logger.Fatal(pubApi.server.Start(port))
+
+	messApi.RegisterMessageRoutes()
+	messApi.server.Logger.Fatal(messApi.server.Start(port))
 }

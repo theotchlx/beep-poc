@@ -4,13 +4,10 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-
-	authn "beep-poc-backend/middlewares/authentication"
 )
 
 // Public API interface, struct, constructor and methods.
@@ -22,17 +19,6 @@ type PublicAPI struct {
 func InitPublicAPI() *PublicAPI {
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-
-	// Initialize Keycloak auth
-	keycloakCfg := authn.Config{
-		IssuerURL: "http://localhost:7080/realms/beep-poc",
-		ClientID:  "beep-poc-front",
-	}
-	authMw, err := authn.NewAuthMiddleware(keycloakCfg)
-	if err != nil {
-		log.Fatalf("failed to init Keycloak auth: %v", err)
-	}
-	e.Use(authMw.MiddlewareFunc()) // Protect routes with authentication middleware
 
 	return &PublicAPI{
 		server: e,
