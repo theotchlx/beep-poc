@@ -58,17 +58,10 @@ export const Layout: FC<LayoutProps> = (props) => {
 
   const navItems: NavItemType[] = [
     {
-      text: 'Home',
+      text: 'Channel',
       protected: true,
       action: () => {
         navigate(appRoutes.home);
-      },
-    },
-    {
-      text: 'Playground',
-      protected: true,
-      action: () => {
-        navigate(appRoutes.playground);
       },
     },
     {
@@ -77,14 +70,14 @@ export const Layout: FC<LayoutProps> = (props) => {
       action: () => {
         void auth.signoutRedirect();
       },
-    },
+    },/*
     {
       text: 'Login',
       protected: false,
       action: () => {
         void auth.signinRedirect();
       },
-    },
+    },*/
   ].filter((item) => {
     return auth.isAuthenticated || !item.protected;
   });

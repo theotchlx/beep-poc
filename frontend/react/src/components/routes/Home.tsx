@@ -113,7 +113,7 @@ export const Home: FC = () => {
   return (
     <>
       <h1>Home</h1>
-      <p>Inspecting the result of the <code>useAuth()</code> hook.</p>
+      <p>Write a few messages...</p>
 
       <h2>Messages</h2>
       {messages.length > 0 ? (
