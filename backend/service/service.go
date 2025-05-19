@@ -147,7 +147,7 @@ func (svc *MessageService) Search(request *dto.SearchMessagesRequest) ([]*dto.Ge
 	/*  1. Search for messages in the message repository.
 	 *  3. Return the messages and total number of messages to the caller.
 	 */
-	
+
 	messages, err := svc.messageRepository.Search(request.Query, request.Limit, request.Offset) // Get paginated messages
 	if err != nil {
 		return nil, err
