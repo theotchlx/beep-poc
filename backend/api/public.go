@@ -4,6 +4,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -27,6 +28,7 @@ func InitPublicAPI() *PublicAPI {
 
 // getWellKnownConfig returns the body of the /auth-well-known-config endpoint.
 func (api *PublicAPI) getWellKnownConfig(c echo.Context) error {
+	log.Println("getWellKnownConfig endpoint hit")
 	resp, err := http.Get("http://localhost:7080/realms/beep-poc/.well-known/openid-configuration")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch well-known configuration"})
@@ -39,7 +41,7 @@ func (api *PublicAPI) getWellKnownConfig(c echo.Context) error {
 
 	var config map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to decode well-known configuration"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to parse well-known configuration"})
 	}
 
 	return c.JSON(http.StatusOK, config)

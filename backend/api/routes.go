@@ -3,6 +3,7 @@ package api
 import (
 	authn "beep-poc-backend/middlewares/authentication"
 	"log"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -30,6 +31,12 @@ func Start(messApi *MessageAPI, pubApi *PublicAPI, port string) {
 	// Echo middlewares
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	// Enable CORS because Vite is A§AZ%feZ&a I don't have all week, damn you JS backend scripters!!!
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:4040"}, // Frontend URL
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+	}))
 
 	// Initialize Keycloak auth middleware
 	keycloakCfg := authn.Config{
