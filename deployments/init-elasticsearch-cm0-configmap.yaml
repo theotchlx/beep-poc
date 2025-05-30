@@ -1,0 +1,26 @@
+apiVersion: v1
+data:
+  init.sh: |
+    #!/bin/bash
+
+    # Create the messages index with the necessary mappings
+    curl -X PUT "elasticsearch:9200/messages" -H 'Content-Type: application/json' -d'
+    {
+      "mappings": {
+        "properties": {
+          "id": { "type": "keyword" },
+          "author": { "type": "keyword" },
+          "createdAt": { "type": "date" },
+          "content": { "type": "text" }
+        }
+      }
+    }'
+
+    echo "Elasticsearch index 'messages' created."
+kind: ConfigMap
+metadata:
+  annotations:
+    use-subpath: "true"
+  labels:
+    io.kompose.service: init-elasticsearch
+  name: init-elasticsearch-cm0
